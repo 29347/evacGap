@@ -16,7 +16,7 @@ When a wildfire breaks out, evacuation orders go out zone by zone, and the minut
 
 **1. Evacuation waits are extremely uneven.** Most fires get an alert quickly, but a long right tail of cases waits hours — or, in the worst cases, days. We reason about the full distribution rather than an average, because a few severe delays hide behind a single mean.
 
-![Distribution of first-alert times](figures/lag_distribution.png)
+images/image.png
 
 **2. Vulnerability turns delay into an equity question.** Joining the delay to ACS county demographics (poverty, child poverty, unemployment, transit access, income) shows delay isn't only about the fire — it's also about whether a community has the resources to act on an alert.
 
