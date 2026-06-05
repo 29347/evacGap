@@ -1,0 +1,15 @@
+# data (download separately — see data/README.md)
+data/**
+!data/README.md
+
+# notebook checkpoints
+.ipynb_checkpoints/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# os
+.DS_Store
