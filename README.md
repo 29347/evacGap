@@ -29,7 +29,7 @@ images/image.png
 | Fresno | 10 | 83 min | 0.85 |
 | Butte | 6 | 56 min | 0.61 |
 
-![Delay vs. vulnerability quadrant](figures/equity_quadrant.png)
+images/image-3.png
 
 We translate each into targeted recommendations (bilingual alerts, transport support, outreach, earlier trigger review), and estimate that **~6,857 minutes (~114 hours)** of lead time could be recovered across the top-20 priority fire-zones with earlier alert triggers — a model-based estimate of potential, not a guarantee.
 
