@@ -1,94 +1,123 @@
-# EvacGap
+# EvacGap — Measuring Evacuation-Alert Delay Across California Wildfires
 
-> Measuring — and explaining — how long California wildfire evacuation alerts take to reach each community.
-
+**WiDS Datathon 2026 · University Challenge**
 **WiDS Datathon 2026 · Track 1: Equitable Evacuations**
 
-📊 [Slide deck](FILL_IN) · 📝 [Full writeup](FILL_IN) · 🎥 [Demo video (≤3 min)](FILL_IN) · 🏆 [Kaggle submission](FILL_IN)
+> EvacGap measures how long California communities wait for wildfire evacuation alerts, and shows that the longest delays fall disproportionately on the communities least equipped to respond quickly.
+
+
+
+🔗 [GitHub repo](https://github.com/29347/evacGap) · 📊 [Slide deck](https://docs.google.com/presentation/d/1TjxNMsREkufSimdF5__-xwLaS-16bsjp/edit?usp=sharing&ouid=105165258898800248652&rtpof=true&sd=true) · 🎥 [Demo video (≤3 min)](https://www.youtube.com/watch?v=OkAYfCSZIFY)
+[Google Colab](https://colab.research.google.com/drive/1nttFIUnPnai7DsLu7i5QS0cSrVEwofcY?usp=sharing)
 
 ---
 
-## The question
+## Project & Team Info
 
-When a wildfire breaks out, evacuation orders go out zone by zone, and the minutes between a fire starting and a zone being warned can decide whether people get out safely. EvacGap asks: **after a California wildfire is first reported, how long does each zone wait for its first evacuation alert — and does that wait fall disproportionately on more vulnerable communities?**
 
-## Key findings
+| **Project Title** | EvacGap — Measuring Evacuation-Alert Delay Across California Wildfires |
+| **Team Name** | EvacGap |
+| **University** | Pasadena City College |
+| **Course** | Cs20 |
+| **Term** | Spring 2026 |
 
-**1. Evacuation waits are extremely uneven.** Most fires get an alert quickly, but a long right tail of cases waits hours — or, in the worst cases, days. We reason about the full distribution rather than an average, because a few severe delays hide behind a single mean.
+**Team Members**
+- Thant Kyi Thu
+- Qifei Li 
 
-images/image.png
+---
 
-**2. Vulnerability turns delay into an equity question.** Joining the delay to ACS county demographics (poverty, child poverty, unemployment, transit access, income) shows delay isn't only about the fire — it's also about whether a community has the resources to act on an alert.
+## Chosen Route
 
-**3. Four counties carry both high delay and high vulnerability.** Splitting counties at the median of each axis, four land in the high-lag *and* high-vulnerability quadrant:
+**Route 1: Accelerating Equitable Evacuations**
 
-| County | Fires | Median lag | Vulnerability |
-|---|---:|---:|---:|
-| Kern | 7 | 100 min | 0.81 |
-| Riverside | 18 | 99 min | 0.60 |
-| Fresno | 10 | 83 min | 0.85 |
-| Butte | 6 | 56 min | 0.61 |
+**Core question:** Do the longest waits for evacuation alerts fall on the communities least equipped to respond quickly — and where could earlier triggering recover the most lead time?
 
-images/image-3.png
+EvacGap measures evacuation-alert delay across California wildfires: the time from when a fire is first logged to when each evacuation zone receives its first alert, using WatchDuty incident data. We then join that delay to U.S. Census demographics to ask an equity question, and translate the findings into targeted, county-level interventions.
 
-We translate each into targeted recommendations (bilingual alerts, transport support, outreach, earlier trigger review), and estimate that **~6,857 minutes (~114 hours)** of lead time could be recovered across the top-20 priority fire-zones with earlier alert triggers — a model-based estimate of potential, not a guarantee.
+---
 
-## Data
+## Dataset Overview
 
-EvacGap uses **WatchDuty wildfire incident data** (from the WiDS Datathon 2026 dataset) plus **U.S. Census ACS 2017 county data**. The required files are:
+**WatchDuty wildfire incident data (CSV)**
+Real-time incident and alert records for California wildfires. We use the incident logging timestamps and the per-zone evacuation-alert timestamps to compute alert lag (time from a fire first being logged to a zone's first evacuation alert).
 
-- `geo_events_geoevent.csv`, `geo_events_geoeventchangelog.csv` — fire records and status history
-- `evac_zones_gis_evaczone.csv`, `evac_zones_gis_evaczonechangelog.csv` — evacuation zones and status changes
-- `evac_zone_status_geo_event_map.csv` — the zone-to-fire bridge
-- `fire_perimeters_gis_fireperimeter.csv` — fire perimeters (for size)
-- `acs2017_county_data.csv` — county demographics
+**ACS 2017 Census demographics**
+County- and zone-level social vulnerability indicators (used to test whether longer delays concentrate on more vulnerable populations).
 
-The raw data is **not** committed to this repo (size and usage terms). See [`data/README.md`](data/README.md) for download links and where to place each file.
+**Processing and key assumptions**
+- The dataset is connected through a three-join chain: evacuation zone IDs → `uid_v2` → fire IDs. This is what lets each zone-level alert be tied back to a specific fire and then to demographics.
+- We did **not** apply the `is_visible` filter to WatchDuty records — it removes nearly all historical data and would collapse the analysis.
+- Outlier lag filtering: we drop negative lags (backfilled records, where an alert is logged as preceding the fire) and very large lags (cross-season reuse of the same zone). Both are data-quality artifacts rather than real evacuation delays.
+- Analysis uses a **3-day evacuation-lag window** to focus on alerts tied to an active incident.
 
-## Running it
+---
+
+## Approach
+
+**Preprocessing and cleaning**
+- All timestamps parsed with `utc=True` so that lag arithmetic is correct across time zones and daylight-saving boundaries.
+- Working frames created with `.copy()` to avoid chained-assignment side effects when filtering.
+- Records sorted chronologically before `groupby(...).first()` so that "first alert per zone" reliably returns the earliest timestamp, not an arbitrary row.
+
+**Lag computation**
+- For each evacuation zone, alert lag = (first evacuation-alert time) − (time the fire was first logged), per fire.
+- Negative and extreme lags removed as described above; a 3-day window applied.
+
+**Equity analysis**
+- Per-zone and per-county lag joined to ACS 2017 demographics.
+- Counties ranked by the intersection of high alert delay and high social vulnerability.
+
+**Recoverable-lead-time estimate**
+- For the highest-priority fire-zones, we estimate how much evacuation lead time earlier alert triggering could have recovered.
+
+**Charting note**
+- Distribution charts use filtering (dropping out-of-range lags) rather than clipping, so that bars reflect real counts instead of values squeezed to an axis boundary.
+
+**Tools:** Python, pandas, matplotlib / seaborn (Google Colab).
+
+This is a measurement-and-equity analysis rather than a predictive-modeling task, so the results below are descriptive findings rather than model metrics (AUC, F1, RMSE).
+
+---
+
+## Results
+
+- **Scope (after cleaning, 3-day window):** 1,266 zone-level alerts across 210 California fires.
+- **Delay is highly uneven** across zones and counties.
+- **Four priority counties** — Kern, Riverside, Fresno, and Butte — sit at the intersection of high alert delay and high social vulnerability.
+- **Recoverable lead time:** across the top-20 priority fire-zones, earlier alert triggering could have recovered roughly **6,857 minutes (~114 hours)** of evacuation lead time.
+- **Danger-signal gap:** 56% of fires showed danger signals in the data before any evacuation order was issued. _(Verify against the full 210-fire dataset before final grading.)_
+
+**Targeted interventions (per priority county):** bilingual alerts, transport assistance, community outreach, and earlier alert triggers.
+
+**Limitations and ethical considerations**
+- WatchDuty timestamps reflect when information was logged, which may differ from the real-world moment an order was issued.
+- ACS 2017 demographics may not reflect current population distribution.
+- Outlier removal is a defensible data-quality choice but does discard a small number of edge-case records; the rationale is documented above.
+
+---
+
+## Team Contributions
+
+| Member | Contributions |
+|---|---|
+| Thant Kyi Thu & Qifei Li | Presentation, Kaggle narrative writeup, repository structure, equity analysis, app mockup  Kaggle notebook, data pipeline, lag computation, figure export |
+
+---
+
+## How to Reproduce
 
 ```bash
-git clone FILL_IN
+[git clone FILL_IN_GITHUB_REPO_URL](https://github.com/29347/evacGap)
 cd evacgap
-pip install -r requirements.txt
 ```
 
-1. Download the data (see `data/README.md`) and place the CSVs under `data/`.
-2. Open `notebooks/evacgap.ipynb` and set the input path near the top to your data folder:
-   ```python
-   input_root = Path("data")   # or "/kaggle/input" if running on Kaggle
-   ```
-3. Run the notebook top to bottom. It reproduces the full pipeline, the figures in `figures/`, and the result tables in `outputs/`.
+1. Open the notebook in Google Colab (badge at the top of this README).
+2. Run the cells top to bottom. The notebook auto-detects whether it is running in Colab or locally and resolves the data paths accordingly.
+3. The three exported figures are written out at the end of the run.
 
-> **Note on the analysis window:** this repo uses the **0–3 day** evacuation-lag filter (1,266 zone rows across 210 fires), matching the deck and writeup.
+---
 
-## Repository structure
+## Questions?
 
-```
-evacgap/
-├── README.md
-├── requirements.txt
-├── notebooks/
-│   └── evacgap.ipynb              # full analysis, runnable top-to-bottom
-├── figures/
-│   ├── lag_distribution.png
-│   ├── lag_vs_vulnerability.png
-│   └── equity_quadrant.png
-├── outputs/
-│   ├── county_equity.csv          # per-county lag + vulnerability
-│   └── priority_recommendations.csv
-└── data/
-    └── README.md                  # where to get the data (not the data itself)
-```
-
-## Method, in brief
-
-Evacuation lag is the minutes from a fire's first log to the first evacuation-status change for a zone linked to it. Because no table connects zones to fires directly, we chain three joins (zone → `uid_v2` → `geo_event_id` → fire). We parse the JSON status column, sort chronologically before taking the first event per zone, and keep only lags of 0–3 days (removing backfilled negatives and reused-zone-ID artifacts). We then restrict to California, attach each county's ACS profile, and build a composite vulnerability score to surface where delay and need overlap. Full detail is in the [writeup](FILL_IN).
-
-## Limitations & next steps
-
-County-level demographics average away within-county variation; the ACS data is from 2017; the analysis is California-only; and the recoverable-lead-time figure is a model estimate. Next: validate earlier triggers against fire-spread signals, move to tract-level granularity, and extend beyond California.
-
-## Team
-
-Qifei & Alex
+Visit the WiDS community hub.
